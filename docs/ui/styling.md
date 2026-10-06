@@ -49,6 +49,11 @@ value. `Mix` and transitions mix the real values: a mix back inside sRGB
 is an ordinary color. Don't assign `R`, `G` or `B` of such a color, as the
 real value would no longer match: make a new one.
 
+`ui/palette` has Tailwind CSS's default palette (v4, in oklch, so a Mac with a
+P3 screen shows it vivid): 26 hues in the shades 50, 100 to 900 and 950, as
+functions, `palette.Blue600()`, plus `palette.White()` and `palette.Black()`.
+A function builds its color each call: keep the colors you use every frame.
+
 Colors come from `ui.RGB`, `ui.RGBA` and `ui.Hex("#2563eb")`; `Mix` blends
 two, and `Alpha` makes one translucent.
 

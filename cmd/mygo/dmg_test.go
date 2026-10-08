@@ -113,7 +113,7 @@ func TestBuildDMG(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app, err := writeBundle(c, dir, bin, icns, nil)
+	app, err := writeBundle(c, dir, bin, icns, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

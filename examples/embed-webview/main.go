@@ -8,12 +8,19 @@ package main
 
 import (
 	"context"
+	"embed"
 	"log"
 	"sync/atomic"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
+
+// frontend is the notes page, which the app serves: a page loaded from a
+// URL reloads, unlike one loaded with LoadHTML.
+//
+//go:embed notes.html
+var frontend embed.FS
 
 // Notes is bound for the pages: Like counts a like and tells every page.
 type Notes struct{ app *app }
@@ -129,6 +136,7 @@ func (a *app) view(c *ui.Context) {
 
 func main() {
 	a := &app{tab: "notes", zoom: "100%"}
+	mygo.SetFrontend(frontend)
 	mygo.Bind(&Notes{a})
 	mygo.App.WhenReady(func() {
 		a.win = mygo.NewWindow(mygo.WindowOptions{
@@ -138,11 +146,10 @@ func main() {
 			MinWidth: 560,
 			Content:  ui.View(a.view),
 		})
-		notes, err := a.win.NewWebView(mygo.WebViewOptions{})
+		notes, err := a.win.NewWebView(mygo.WebViewOptions{URL: "/notes.html"})
 		if err != nil {
 			log.Fatal(err)
 		}
-		notes.Page().LoadHTML(notesPage, "")
 		web, err := a.win.NewWebView(mygo.WebViewOptions{URL: "https://example.com"})
 		if err != nil {
 			log.Fatal(err)
@@ -158,31 +165,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
-const notesPage = `<!doctype html>
-<html><head><meta charset="utf-8"><style>
-  :root { color-scheme: light dark; font: 15px/1.5 system-ui, sans-serif; }
-  body { margin: 0; padding: 32px 40px; }
-  h1 { margin-top: 0; }
-  a { color: #2563eb; }
-  a:hover, li:hover { background: #fde68a; }
-  button { font: inherit; padding: 6px 14px; }
-  input { font: inherit; padding: 6px 8px; width: 260px; }
-</style></head><body>
-  <h1>Notes</h1>
-  <p>This page is a web view inside a window that MyGo draws. The menu, the
-  select, the tooltip, the dialog, the toasts and the badge in the corner are
-  native UI, drawn over the page.</p>
-  <p><button id="like">Like</button> <span id="likes">0</span> likes</p>
-  <p><input placeholder="Type here: the page has the keyboard"></p>
-  <ul></ul>
-  <script>
-    document.querySelector("ul").innerHTML = Array.from({length: 40}, (_, i) =>
-      '<li>Item ' + (i + 1) + ' — <a href="#' + i + '">a link to hover</a></li>').join("");
-    const likes = document.getElementById("likes");
-    document.getElementById("like").onclick = async () => {
-      likes.textContent = await mygo.call("Notes.Like");
-    };
-    mygo.on("liked", (n) => { likes.textContent = n; });
-  </script>
-</body></html>`

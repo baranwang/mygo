@@ -3275,6 +3275,21 @@ func (_handle Element) ID() uint64 {
 	return _node.ID()
 }
 
+// InsetShadow adds an inner box shadow, as CSS's box-shadow: inset: offset
+// by x and y, blurred by blur and grown inward by spread DIPs. It shows
+// only inside the box's padding edge, within its border and rounded
+// corners, above the background and below the content. Inner shadows
+// stack in the order they are added, as outer ones do.
+func (_handle Element) InsetShadow(x float32, y float32, blur float32, spread float32, c Color) Element {
+	_node := _handle.node()
+	if _node == nil {
+		return Element{}
+	}
+	_ctx := _node.c
+	_ = _ctx
+	return wrapElement(_node.InsetShadow(x, y, blur, spread, c))
+}
+
 // Invisible hides the element and its children, which keep their room in
 // the layout but draw nothing and take neither the pointer nor the focus,
 // as CSS's visibility: hidden does.
@@ -3797,7 +3812,9 @@ func (_handle Element) Pressed() bool {
 // element it is attached to (AttachTo), nor the overlays attached to
 // elements inside it, as the popover of one of its buttons. A popover
 // closes then, the press going on to what is under the pointer, as
-// PopoverBase does.
+// PopoverBase does. The last press decides: one on the button opening a
+// popover after a press elsewhere, as on a web view's page, in the same
+// frame, keeps it open.
 func (_handle Element) PressedOutside() bool {
 	_node := _handle.node()
 	if _node == nil {

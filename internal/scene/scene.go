@@ -90,6 +90,11 @@ const (
 	// Scene.Effects[Start]: shaders of a package outside the renderers (see
 	// Effect), with Opacity.
 	OpEffect
+	// OpHole makes the rounded rectangle Rect with Radii transparent,
+	// within the clip: what the ops before it painted there is gone, and
+	// what the window shows under the frame, as a web view, shows through.
+	// The ops after it paint over it as over any transparent pixels.
+	OpHole
 )
 
 // Op is one drawing operation. Which fields matter depends on Kind.

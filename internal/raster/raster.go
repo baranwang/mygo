@@ -211,6 +211,8 @@ func (r *renderer) render(dst *Image, s *scene.Scene, area image.Rectangle, boun
 			r.glyphs(op)
 		case scene.OpImage:
 			r.image(op)
+		case scene.OpHole:
+			r.hole(op)
 		case scene.OpEffect:
 			if i == from && px != nil {
 				r.effect(op, px, b)
@@ -785,6 +787,51 @@ func (r *renderer) fill(op *scene.Op) {
 				}
 			}
 		}
+	}
+}
+
+// hole makes a rounded rectangle transparent within the clips: each pixel
+// keeps what its coverage leaves of it, as renderers blend with a
+// destination factor of one minus the coverage and none of the source.
+func (r *renderer) hole(op *scene.Op) {
+	if op.Rect.Empty() {
+		return
+	}
+	shape := newShape(op.Rect, scene.Corners(op.Rect, op.Radii, op.Continuous))
+	x0, y0, x1, y1 := r.pixelBounds(op.Rect)
+	for y := y0; y < y1; y++ {
+		row := r.dst.Pix[y*r.dst.Stride:]
+		py := float32(y) + 0.5
+		cl, ch := r.clipSolid(y)
+		ol, oh := solidSpan(&shape, float32(y), float32(y+1))
+		sl, sh := max(ol, cl, x0), min(oh, ch, x1)
+		if sl < sh {
+			clear(row[4*sl : 4*sh])
+		}
+		for x := x0; x < x1; x++ {
+			if x >= sl && x < sh {
+				x = sh - 1 // past the run, which is done
+				continue
+			}
+			cov := r.clipCoverage(x, y)
+			if cov == 0 {
+				continue
+			}
+			if x < ol || x >= oh {
+				cov *= coverage(&shape, float32(x)+0.5, py)
+			}
+			if cov > 0 {
+				erase(row[4*x:4*x+4], cov)
+			}
+		}
+	}
+}
+
+// erase takes the coverage cov of a premultiplied pixel away.
+func erase(p []byte, cov float32) {
+	inv := 1 - cov
+	for i := range p[:4] {
+		p[i] = to8(float32(p[i]) / 255 * inv)
 	}
 }
 

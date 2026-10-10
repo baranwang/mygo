@@ -42,6 +42,8 @@ func (rt *engine) event(ev platform.SurfaceEvent) (taken bool) {
 	case platform.PointerUp:
 		rt.pointerMove(x, y)
 		rt.pointerUp(ev.Button, ev.Clicks)
+	case platform.WebViewPress:
+		rt.webViewPress(x, y, ev.Button)
 	case platform.PointerLeave:
 		rt.pointerIn = false
 		if rt.pressed == nil {

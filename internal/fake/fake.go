@@ -532,6 +532,7 @@ func (w *Window) Close() {
 	}
 	w.closed = true
 	w.mu.Unlock()
+	w.closeWebViews()
 	w.H.Closed()
 }
 
@@ -791,6 +792,12 @@ type Surface struct {
 	rate        float64
 	dataDrag    *platform.DragRequest
 	dropFormats []transfer.Format
+	// webViews are those made (webview.go), order those shown in the
+	// order the content painted them, and placements counts
+	// PlaceWebViews.
+	webViews   []*WebView
+	order      []*WebView
+	placements int
 }
 
 func (s *Surface) StartDataDrag(r platform.DragRequest) { s.dataDrag = &r }

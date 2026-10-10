@@ -2092,6 +2092,34 @@ func View(view func(c *Context)) *Content {
 	return coreView(func(c *context) { view(makeContext(c)) })
 }
 
+// WebView shows a web view, made with mygo.Window.NewWebView, in the
+// element's content box. A web view has no size of its own: the element
+// stretches across its container (AlignSelf(Stretch)), and takes the room
+// along it with Grow or a size:
+//
+//	ui.Row(c).Fill().Children(func() {
+//		sidebar(c)
+//		ui.WebView(c, app.docs).Grow(1)
+//	})
+//
+// The web view shows while a frame builds its element and hides when one
+// does not, keeping its page: a view switching tabs builds the web view
+// of the tab shown. The element paints a hole through the window's
+// content (the web view is under it, the system's own view), as rounded
+// as its Radius and cut by the scroll containers and clips around it, so
+// that what paints after it shows over the page: its children, popovers,
+// menus, dialogs, tooltips and toasts. The page takes the pointer where
+// it shows and nothing painted over it takes it, and the keyboard once
+// clicked or focused (mygo.WebView.Focus). Its background and border paint
+// around the page, which its opacity does not fade.
+func WebView(c *Context, v NativeWebView) Element {
+	_ctx := c.build()
+	if _ctx == nil {
+		return Element{}
+	}
+	return wrapElement(coreWebView(_ctx, v))
+}
+
 // Absolute takes the element out of its parent's layout and places it with
 // Top, Right, Bottom and Left relative to the parent's padding box, above
 // its siblings. As in CSS, that box is inside the parent's border but holds
@@ -4238,8 +4266,8 @@ func (_handle Element) TextColor(c Color) Element {
 // TextRanges styles runs of a text input's text, in the frames that call
 // it, with ranges that do not overlap. They follow the text as it is: an
 // app that finds them in the text finds them again as it changes. A
-// password shows none, nor a paragraph while an input method composes in
-// it.
+// password shows none; an input method's composition shows unstyled
+// between them.
 func (_handle Element) TextRanges(ranges ...TextRange) Element {
 	_node := _handle.node()
 	if _node == nil {

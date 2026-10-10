@@ -3,6 +3,7 @@ package ui
 import (
 	"log"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/egoist/mygo/internal/platform"
@@ -100,6 +101,8 @@ type windowHost struct {
 	// shown tells that a frame was presented, which makes the window
 	// ready to show.
 	shown bool
+	// placed is where the surface shows the window's web views.
+	placed []platform.WebViewPlacement
 }
 
 func (h *windowHost) framePath() string { return h.path }
@@ -110,6 +113,17 @@ var newGPU = newGPURenderer
 // event handles an event of the surface, noting when it asks for a frame:
 // only then may renderers draw (OpenGL's context is current only then).
 func (h *windowHost) event(ev platform.SurfaceEvent) bool {
+	if ev.Kind == platform.SurfaceRenew {
+		// The next frame makes the renderer again, for the surface's new
+		// native objects.
+		if h.gpu != nil {
+			h.gpu.Release()
+			h.gpu = nil
+		}
+		h.gpuTried, h.retryAt = false, time.Time{}
+		h.conn.Surface.RequestFrame()
+		return false
+	}
 	if ev.Kind == platform.SurfaceFrame {
 		h.framing = true
 		defer func() { h.framing = false }()
@@ -472,6 +486,28 @@ func (h *windowHost) invalidate() { h.conn.Invalidate() }
 func (h *windowHost) openURL(u string, done func(error)) {
 	if h.conn.OpenURL != nil {
 		h.conn.OpenURL(u, done)
+	}
+}
+
+// placeWebViews gives the surface where the frame shows the window's web
+// views, unless it is where the last frame showed them.
+func (h *windowHost) placeWebViews(views []placedWebView) {
+	list := make([]platform.WebViewPlacement, 0, len(views))
+	for _, v := range views {
+		if n := v.v.SurfaceWebView(h.conn); n != nil {
+			list = append(list, platform.WebViewPlacement{WebView: n, Frame: v.frame, Clip: v.clip, Covers: v.covers})
+		}
+	}
+	if slices.EqualFunc(list, h.placed, func(a, b platform.WebViewPlacement) bool {
+		return a.WebView == b.WebView && a.Frame == b.Frame && a.Clip == b.Clip && slices.Equal(a.Covers, b.Covers)
+	}) {
+		return
+	}
+	h.placed = list
+	if h.conn.PlaceWebViews != nil {
+		h.conn.PlaceWebViews(list)
+	} else {
+		h.conn.Surface.PlaceWebViews(list)
 	}
 }
 

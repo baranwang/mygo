@@ -3247,6 +3247,21 @@ func (_handle Element) ID() uint64 {
 	return _node.ID()
 }
 
+// InsetShadow adds an inner box shadow, as CSS's box-shadow: inset: offset
+// by x and y, blurred by blur and grown inward by spread DIPs. It shows
+// only inside the box's padding edge, within its border and rounded
+// corners, above the background and below the content. Inner shadows
+// stack in the order they are added, as outer ones do.
+func (_handle Element) InsetShadow(x float32, y float32, blur float32, spread float32, c Color) Element {
+	_node := _handle.node()
+	if _node == nil {
+		return Element{}
+	}
+	_ctx := _node.c
+	_ = _ctx
+	return wrapElement(_node.InsetShadow(x, y, blur, spread, c))
+}
+
 // Invisible hides the element and its children, which keep their room in
 // the layout but draw nothing and take neither the pointer nor the focus,
 // as CSS's visibility: hidden does.
@@ -3618,6 +3633,24 @@ func (_handle Element) NoWrap() Element {
 	_ctx := _node.c
 	_ = _ctx
 	return wrapElement(_node.NoWrap())
+}
+
+// OnPaste has fn see a paste into a text input, by Cmd+V, Ctrl+V or a
+// Paste menu item, before it is inserted, on the main thread as the paste
+// comes: text is the clipboard's text, empty when it holds none, as with
+// an image, which the app reads from the clipboard itself. fn reports
+// whether it took the paste; a paste taken changes nothing, its selection
+// and undo history included, as when a web page prevents a paste's
+// default and attaches a large block instead of inserting it. Like
+// ReadOnly, it holds for the input that comes until the next frame.
+func (_handle Element) OnPaste(fn func(text string) bool) Element {
+	_node := _handle.node()
+	if _node == nil {
+		return Element{}
+	}
+	_ctx := _node.c
+	_ = _ctx
+	return wrapElement(_node.OnPaste(func(text string) bool { return fn(text) }))
 }
 
 // Opacity makes the element and its children translucent.
@@ -4220,8 +4253,8 @@ func (_handle Element) TextColor(c Color) Element {
 // TextRanges styles runs of a text input's text, in the frames that call
 // it, with ranges that do not overlap. They follow the text as it is: an
 // app that finds them in the text finds them again as it changes. A
-// password shows none, nor a paragraph while an input method composes in
-// it.
+// password shows none; an input method's composition shows unstyled
+// between them.
 func (_handle Element) TextRanges(ranges ...TextRange) Element {
 	_node := _handle.node()
 	if _node == nil {

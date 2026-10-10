@@ -336,6 +336,21 @@ func TestInspectorSettles(t *testing.T) {
 	check("picking")
 }
 
+func TestInspectorInsetShadow(t *testing.T) {
+	tt := coreNewTester(func(c *context) {
+		coreBox(c).Size(40, 40).Shadow(0, 2, 4, 0, RGB(0, 0, 0)).InsetShadow(0, 0, 1, 0, RGB(255, 255, 255))
+	}, 100, 100)
+	var got []string
+	for _, d := range ownStyles(tt.rt, tt.rt.c.root.first) {
+		if d.name == "box-shadow" {
+			got = append(got, d.value)
+		}
+	}
+	if len(got) != 2 || got[0] != "0 2px 4px 0 #000000" || got[1] != "inset 0 0 1px 0 #ffffff" {
+		t.Errorf("box-shadow: %q", got)
+	}
+}
+
 func TestInspectorColorText(t *testing.T) {
 	for _, tc := range []struct {
 		c    Color

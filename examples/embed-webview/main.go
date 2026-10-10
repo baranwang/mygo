@@ -1,9 +1,9 @@
-// Webview shows web pages in a window of native UI: a sidebar of tabs,
-// each a web view, under a toolbar whose menu, select, tooltip and dialog
-// show over the page, as the badge over its corner does. The notes page
-// calls Go and hears from it through the bridge.
+// Embed-webview shows web pages in a window of native UI: a sidebar of
+// tabs, each a web view, under a toolbar whose menu, select, tooltip and
+// dialog show over the page, as the badge over its corner does. The notes
+// page calls Go and hears from it through the bridge.
 //
-//	go run ./examples/webview
+//	go run ./examples/embed-webview
 package main
 
 import (

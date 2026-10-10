@@ -353,6 +353,76 @@ export default defineConfig({
 of a page control its inspector, when it has one, see
 [the web inspector](frontend.md#the-web-inspector).
 
+## Web views in native UI
+
+A window of [native UI](ui/README.md) can show web content beside what
+MyGo draws: `win.NewWebView` embeds the platform's web view (WKWebView,
+WebView2, WebKitGTK) over a rectangle of the window. The app places it
+each frame, usually over an element that reserves the room, and hides it
+when that element goes; a hidden web view keeps its page loaded.
+
+```go
+v, err := win.NewWebView(mygo.WebViewOptions{
+	OnMessage: func(msg string, frame mygo.WebViewFrame) {
+		fmt.Println("the page says", msg, "from", frame)
+	},
+})
+v.LoadURL("http://localhost:5173/")
+
+func (s *app) view(c *ui.Context) {
+	area := ui.Box(c.Key("preview")).Grow(1)
+	// Bounds is where the element was in the previous frame.
+	if r := area.Bounds(); r.W > 0 && r.H > 0 {
+		s.web.Place(float64(r.X), float64(r.Y), float64(r.W), float64(r.H))
+	}
+}
+```
+
+The web view is a native view above the window's surface: nothing MyGo
+draws covers it, so hide it while a menu, a popover or a dialog drawn in
+the window overlaps it. Its methods are safe from any goroutine and its
+callbacks run on the main thread.
+
+| Method | |
+|---|---|
+| `LoadURL`, `LoadHTML`, `LoadFile(path, readAccess)` | load a page; `LoadHTML`'s document has no origin (`about:blank`) |
+| `Place(x, y, w, h)`, `Hide()` | show it over a rectangle, in DIPs from the top left of the content, or hide it |
+| `Focus()`, `Blur()`, `Focused()` | move the keyboard into the page and back to the window |
+| `Eval(js)`, `Call(body, done)` | run a script in the top document; `Call` runs an async function body and passes its result as JSON |
+| `Snapshot(x, y, w, h, pixelWidth, done)` | render a part of the page to a PNG |
+| `SetBackgroundColor(css)` | change `BackgroundColor`, for a theme switch |
+| `Close()` | destroy it |
+
+A page in a web view gets no bridge and can't call bound services. Every
+frame has `window.mygoWebView.postMessage(string)`, which `OnMessage`
+receives with the frame that posted it: `FrameMain` for the top document,
+`FrameChild` for its iframes and `FrameNested` for deeper ones. Only
+`FrameMain` can be trusted; anything inside an iframe can claim anything.
+
+| Option | |
+|---|---|
+| `Scripts` | scripts run in every page (`AtDocumentEnd`, `MainFrameOnly`) |
+| `OnNavigate(func(mygo.WebViewNavigation) bool)` | allows or cancels a navigation, with its URL, frame and whether the user started it |
+| `OnNewWindow(func(url string))` | a page asked for a new window; none opens |
+| `OnLoad`, `OnCrash` | the top document loaded; the page's process ended |
+| `Transparent`, `BackgroundColor` | show the window through until the page paints, or a color |
+| `CornerRadius`, `Corners` | round some or all corners |
+| `DevTools` | allow the web inspector |
+
+`mygo.NewOffscreenWebView` makes a web view in no window, `Width` by
+`Height`, to render pages into images with `Call` and `Snapshot`: math,
+diagrams, charts.
+
+The platforms differ in a few ways:
+
+- On Windows a transparent web view shows `BackgroundColor`, or black,
+  rather than the window, and corners are clipped without antialiasing.
+- On Linux corners aren't rounded, `LoadFile` can't limit what a page reads
+  to `readAccess`, and WebKitGTK doesn't say which frame a navigation is
+  for: iframes' navigations, redirects and scripted navigations of a
+  document of no origin come as `FrameUnknown`. A navigation is never
+  reported as `FrameMain` wrongly.
+
 ## Finding windows
 
 - `mygo.Windows()` lists the open windows, `mygo.FocusedWindow()` returns

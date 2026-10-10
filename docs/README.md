@@ -78,8 +78,9 @@ that must start instantly.
 - [Getting started](getting-started.md): install the tools, then create,
   develop and build an app, with a web frontend or native UI.
 - [Windows](windows.md): creating and arranging windows of both kinds,
-  their events, and what windows showing web pages do with them:
-  navigation, downloads, permissions, printing.
+  their events, what windows showing web pages do with them:
+  navigation, downloads, permissions, printing, and web views embedded in
+  native UI.
 - [The application](app.md): the lifecycle, quitting, a single instance,
   deep links, file associations, starting at login and well-known
   directories.

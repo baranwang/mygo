@@ -2144,6 +2144,62 @@ gets a test with `Tester`. A new GPU renderer draws the instances of
 has a test that compares its drawing of `gputest.Scene` with the CPU
 renderer's (`gputest.Compare`).
 
+## Embedded web views (`webview.go`)
+
+`Window.NewWebView` and `NewOffscreenWebView` reach the backend through
+`Backend.NewWebView(parent, opts, handler)` (`internal/platform/webview.go`):
+a nil parent is offscreen. Every backend first injects a shim giving each
+frame `window.mygoWebView.postMessage`, then the options' scripts. A web
+view has its own content controller or environment state, never the
+window's bridge, so a page in it can't call bound services. The handler's
+events arrive on the main thread; `webViewHandler` drops them once the web
+view is closed.
+
+- **macOS** (`internal/darwin/embed.go`): a `WKWebView` of its own,
+  added as a subview of the surface's (flipped) view, so `Place` sets its
+  frame in layout coordinates. `MyGoWebViewDelegate` is its navigation, UI
+  and script message delegate, found by `byWebViewDelegate`. Frames post to
+  `mygoWebView` or, below the top document's children, `mygoWebViewNested`;
+  WebKit marks the top document. Navigations tell children from deeper
+  frames by the target's `_parentFrameHandle` against the main frame's
+  `_handle` (SPI, `FrameUnknown` without it). An offscreen web view turns
+  off occlusion detection (`_setWindowOcclusionDetectionEnabled:`), or it
+  would stop painting; `Snapshot` grows it to take in the rectangle.
+- **Windows** (`internal/windows/embed.go`): a controller of its own in
+  the shared environment, in a child host window above the surface (a
+  sibling) or, offscreen, in a non-activating tool window off every screen,
+  shown so Chromium paints. Creating the controller is asynchronous:
+  calls wait in `pending` and run in order once it exists. Iframes are
+  followed from `FrameCreated` (`ICoreWebView2_4`), their messages and
+  navigations through `ICoreWebView2Frame2`, nested ones through
+  `ICoreWebView2Frame7`; where an iframe can't be followed,
+  `FrameNavigationStarting` reports it as `FrameUnknown`. `Call` and
+  `Snapshot` go through DevTools (`Runtime.evaluate` with `awaitPromise`,
+  `Page.captureScreenshot` with a clip). `NavigateToString` takes 2 MB of
+  UTF-16, so a larger `LoadHTML` loads `about:blank` with a script, served
+  by the web view's own web resource handler, that writes the document in.
+  A transparent background shows black in a child window, so
+  `BackgroundColor` shows instead where there is one. The window gives the
+  keyboard back to the embedded web view that had it when it is activated.
+- **Linux** (`internal/linux/embed.go`): every window of native UI puts its
+  surface in a `GtkOverlay` when it is created (moving a realized
+  `GtkGLArea` later would lose its GL context); web views go in a
+  `GtkFixed` overlay child with pass-through, so the surface keeps the
+  input around them. Script messages carry no frame, so the top document's
+  shim prefixes a per-view random secret, kept in a closure, and only
+  messages with it are `FrameMain`. Navigation decisions carry no frame
+  either: `FrameMain` are the loads made through the API and the
+  navigations the top document announces first (the Navigation API's
+  `navigate` event, or link clicks and form submissions in a document of no
+  origin); the rest are `FrameUnknown`. Offscreen web views live in a
+  `GtkOffscreenWindow`. On Wayland WebKit renders at the monitor's scale
+  while GTK reports 1, so `Snapshot` takes the scale from the snapshot's
+  size, and zooms the page (with its size) for more pixels than it has.
+
+Tests: `webview_test.go` (fake backend) and `internal/e2e/webview_test.go`
+(frames, navigation, new windows, focus, offscreen snapshots, documents
+over 2 MB).
+
 ## CLI (`cmd/mygo`)
 
 - `init` renders `cmd/mygo/template`: a Go module and a TypeScript frontend
@@ -2598,6 +2654,7 @@ which npm allows only for packages that exist: the first release uses an
 | file associations | `CFBundleDocumentTypes`; files arrive with `application:openURLs:` | desktop entry `MimeType` (`%U`), a shared-mime-info package in the .deb for types the app defines | ProgIDs and `OpenWithProgids` written by the installer |
 | Dock menu | `applicationDockMenu:` | ignored | ignored |
 | PrintToPDF | `printOperationWithPrintInfo:` save job (`NSJobSavingURL`), fit to width | `WebKitPrintOperation` to GTK's "Print to File" | DevTools `Page.printToPDF` |
+| embedded web views | `WKWebView` subview of the surface's view; frames from WebKit (`_parentFrameHandle` for navigations) | in a `GtkFixed` over the surface's overlay; the top document by a secret, navigations' frames mostly `FrameUnknown`; no rounded corners | a controller in a child window above the surface; frames through `ICoreWebView2Frame2`/`7`; transparency shows `BackgroundColor`, aliased corners |
 | power events | NSWorkspace sleep/wake, `com.apple.screenIsLocked` distributed notifications | logind `PrepareForSleep` (system bus), screen saver `ActiveChanged` (GNOME, freedesktop) | `WM_POWERBROADCAST`, `WM_WTSSESSION_CHANGE` |
 | KeepAwake | `NSProcessInfo` activity (shows in `pmset -g assertions`) | XDG portal `Inhibit`, else `org.freedesktop.ScreenSaver.Inhibit` | `PowerCreateRequest` |
 | IsOnBattery, IdleTime | IOKit power sources, `CGEventSourceSecondsSinceLastEventType` | `/sys/class/power_supply`; Mutter idle monitor or `GetSessionIdleTime` | `GetSystemPowerStatus`, `GetLastInputInfo` |

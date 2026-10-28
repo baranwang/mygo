@@ -149,5 +149,6 @@ export const showcase: ShowcaseApp[] = [
     url: "https://godwit.email",
     author: "baranwang",
     mode: "native",
+    image: "/showcase/godwit.jpg",
   },
 ]

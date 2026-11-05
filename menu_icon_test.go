@@ -151,3 +151,20 @@ func TestMenuIconsForgotten(t *testing.T) {
 		t.Errorf("%d images kept of 512 no icon shows", n)
 	}
 }
+
+// TestMenuItemSubtitle carries the subtitle to the backend, and its changes.
+func TestMenuItemSubtitle(t *testing.T) {
+	menu := NewMenu([]*MenuItem{{ID: "code", Label: "123456", Subtitle: "GitHub · 2 min ago"}})
+	if got := menu.snapshot().Items[0].Subtitle; got != "GitHub · 2 min ago" {
+		t.Errorf("Subtitle = %q", got)
+	}
+	item := menu.ItemByID("code")
+	item.SetSubtitle("GitLab")
+	if p := lastUpdate(t, item); p.Subtitle != "GitLab" || p.LabelWithSubtitle() != "123456 — GitLab" {
+		t.Errorf("after SetSubtitle: %q, %q", p.Subtitle, p.LabelWithSubtitle())
+	}
+	item.SetSubtitle("")
+	if p := lastUpdate(t, item); p.Subtitle != "" || p.LabelWithSubtitle() != "123456" {
+		t.Errorf("after clearing: %q, %q", p.Subtitle, p.LabelWithSubtitle())
+	}
+}

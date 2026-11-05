@@ -3804,6 +3804,19 @@ func (_handle Element) Cache() Element {
 	return wrapElement(_node.Cache())
 }
 
+// CaretColor sets the color of the insertion caret of the text inputs in
+// the element, as CSS's caret-color does, a field's own text color for
+// one; the theme's accent is the color elsewhere.
+func (_handle Element) CaretColor(c Color) Element {
+	_node := _handle.node()
+	if _node == nil {
+		return Element{}
+	}
+	_ctx := _node.c
+	_ = _ctx
+	return wrapElement(_node.CaretColor(c))
+}
+
 // CaretWidth sets this input's painted caret width in DIPs for this build.
 // It defaults to one DIP. Positive widths are rounded to device pixels,
 // at least one pixel wide; zero and negative widths hide the caret. It does
@@ -6243,6 +6256,21 @@ func (_handle Element) PopoverMenuButton(build func(m *Menu)) Element {
 	_ctx := _node.c
 	_ = _ctx
 	return wrapElement(_node.PopoverMenuButton(build))
+}
+
+// PreserveSpaces keeps the spaces the element's text ends its lines with,
+// and a text of only spaces, with their advance, as CSS's white-space:
+// break-spaces does: a gap made of spaces between two texts in a row, or
+// the padding a monospaced column is aligned with. Without it spaces
+// ending a line take no room, as with white-space: normal.
+func (_handle Element) PreserveSpaces() Element {
+	_node := _handle.node()
+	if _node == nil {
+		return Element{}
+	}
+	_ctx := _node.c
+	_ = _ctx
+	return wrapElement(_node.PreserveSpaces())
 }
 
 // Pressed reports whether the element is being pressed with the pointer's

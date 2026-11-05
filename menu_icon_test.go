@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/internal/platform"
+	"github.com/egoist/mygo/ui"
 )
 
 // flag returns a PNG image of w by h pixels in one color.
@@ -166,5 +167,33 @@ func TestMenuItemSubtitle(t *testing.T) {
 	item.SetSubtitle("")
 	if p := lastUpdate(t, item); p.Subtitle != "" || p.LabelWithSubtitle() != "123456" {
 		t.Errorf("after clearing: %q, %q", p.Subtitle, p.LabelWithSubtitle())
+	}
+}
+
+// TestContentMenuIcon brings the icon of an item of a context menu of native
+// UI to the menu the backend shows.
+func TestContentMenuIcon(t *testing.T) {
+	ic, err := NewMenuIcon(flag(t, 32, 32, color.NRGBA{R: 255, A: 255}), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	view := func(c *ui.Context) {
+		ui.Box(c).Fill().ContextMenu(func(m *ui.Menu) {
+			m.Item("Flag").Icon(ic)
+			m.Item("Plain")
+			m.Item("Nil").Icon((*MenuIcon)(nil))
+		})
+	}
+	_, _, s := contentWindow(t, view)
+	onMain(func() {
+		s.Send(platform.SurfaceEvent{Kind: platform.PointerDown, X: 50, Y: 50, Button: 1})
+		s.Send(platform.SurfaceEvent{Kind: platform.PointerUp, X: 50, Y: 50, Button: 1})
+		s.Frame()
+	})
+	onMain(func() {}) // the menu, posted
+	popups := fb.Popups()
+	items := popups[len(popups)-1].Menu.Items
+	if items[0].Icon != ic.p || items[1].Icon != nil || items[2].Icon != nil {
+		t.Errorf("the icons shown are %p, %p and %p, want %p, nil and nil", items[0].Icon, items[1].Icon, items[2].Icon, ic.p)
 	}
 }
